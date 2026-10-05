@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>On-Device Guard Simulator</title>
+<style>
+:root{--bg:#f1f5f9;--surface:#fff;--text:#0f172a;--muted:#475569;--line:#d7dee9;--accent:#0369a1;
+--navy:#0f172a;--navy2:#1e293b;--navy3:#334155;--cyan:#38bdf8;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070d1a;--surface:#111b2e;--text:#e8edf5;--muted:#9fb0c8;--line:#26334d;--accent:#38bdf8}}
+:root[data-theme="dark"]{--bg:#070d1a;--surface:#111b2e;--text:#e8edf5;--muted:#9fb0c8;--line:#26334d;--accent:#38bdf8}
+*{box-sizing:border-box;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','Sukhumvit Set','Tahoma',sans-serif;font-size:16px;line-height:1.5;padding:16px}
+.wrap{max-width:900px;margin:0 auto}
+header{text-align:center;margin-bottom:16px}
+header h1{font-size:26px}
+.tag{display:inline-block;margin:6px 0;padding:3px 12px;border-radius:99px;background:var(--navy);color:var(--cyan);font-size:13px;font-weight:bold}
+header p{color:var(--muted);font-size:15px}
+.controls{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:16px}
+.controls h2{font-size:15px;color:var(--muted);margin-bottom:8px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.btn{font:inherit;font-weight:bold;min-height:48px;padding:10px 14px;border:0;border-radius:12px;cursor:pointer;color:#fff;text-align:left}
+.btn:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.s1{background:#15803d}.s2{background:#b45309}.s3{background:#b91c1c}
+.reset{background:transparent;color:var(--muted);border:1px solid var(--line);text-align:center}
+.btn:hover{filter:brightness(1.12)}
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;justify-items:center}
+.phone{background:var(--navy);color:#f1f5f9;border:4px solid var(--navy3);border-radius:28px;width:100%;max-width:400px;height:600px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.ptitle{text-align:center;font-weight:bold;font-size:15px;color:#cbd5e1;padding-bottom:8px;border-bottom:1px solid var(--navy3)}
+.banner{display:none;padding:10px;border-radius:10px;font-weight:bold;text-align:center;font-size:15px}
+.banner.warn{background:var(--amber);color:#1c1200;display:block}
+.banner.danger{background:var(--red);color:#fff;display:block;animation:pulse 1.4s infinite}
+.banner.safe{background:var(--green);color:#052e16;display:block}
+.chat{flex:1;background:#0b1224;border-radius:12px;padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.b{padding:9px 12px;border-radius:14px;max-width:85%;font-size:16px;line-height:1.45}
+.b.them{background:var(--navy3);align-self:flex-start;border-bottom-left-radius:3px}
+.b.me{background:#0369a1;align-self:flex-end;border-bottom-right-radius:3px}
+.b.sys{background:var(--red);align-self:center;font-weight:bold;text-align:center}
+.con{background:#000;color:#4ade80;font:12px/1.5 ui-monospace,Menlo,monospace;padding:8px;border-radius:10px;height:104px;overflow-y:auto;word-break:break-word}
+.care{flex:1;background:#0b1224;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+.idle{color:#94a3b8;font-size:16px}
+.notif{display:none;width:100%;background:var(--navy2);border:2px solid var(--red);border-radius:14px;padding:14px}
+.notif h3{color:#fca5a5;font-size:17px;margin-bottom:6px}
+.notif p{font-size:15px;color:#e2e8f0;margin-bottom:6px}
+.notif small{color:#94a3b8;display:block;margin-bottom:12px}
+.cut{width:100%;min-height:64px;font-size:18px;text-align:center;background:var(--red);border-radius:99px;animation:bounce 1s infinite}
+@keyframes pulse{50%{opacity:.7}}@keyframes bounce{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.banner,.cut{animation:none}}
+footer{margin-top:20px}
+footer h2{font-size:18px;margin-bottom:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.card b{display:block;color:var(--accent);margin-bottom:2px}
+.card span{font-size:14px;color:var(--muted)}
+.pdpa{margin-top:12px;font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.note{background:#fef3c7;color:#78350f;border:2px solid #f59e0b;border-radius:14px;padding:12px;margin-bottom:14px;font-size:15px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px}
+.sec h2{font-size:18px;margin-bottom:8px}.sec p,.sec li{font-size:15px;color:var(--muted)}.sec ol,.sec ul{padding-left:20px}
+.prog{font-size:15px;font-weight:bold;margin-top:10px;color:var(--accent)}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.set label{display:flex;gap:8px;align-items:center;font-size:15px;min-height:44px}
+.set input{width:22px;height:22px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.flow span{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.warnbox{background:#fef3c7;color:#78350f;border-radius:12px;padding:10px;margin-top:8px;font-size:14px}
+.opt{display:block;width:100%;margin-top:6px;background:var(--bg);color:var(--text);border:1px solid var(--line);text-align:left}
+.opt.sel{outline:2px solid var(--accent)}.opt.ok{background:#15803d;color:#fff}.opt.bad{background:#b91c1c;color:#fff}
+.mini{min-height:44px;padding:8px 14px;border-radius:10px;border:0;font:inherit;font-weight:bold;cursor:pointer;color:#fff;background:var(--accent)}
+.conf{display:none;margin-top:10px;background:#0b1224;border-radius:12px;padding:10px;font-size:15px}
+.conf .mini{margin:6px 6px 0 0}
+#why{display:none}
+#msg{margin-top:8px;font-weight:bold;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🛡️ On-Device Guard Simulator</h1>
+  <span class="tag">Privacy-First AI</span>
+  <p>จำลองแนวคิดการป้องกันสายสแกมด้วย AI แบบ Privacy-First โดยเน้นการประมวลผลภายในอุปกรณ์</p>
+</header>
+<div class="note">⚠️ <b>หมายเหตุสำคัญ:</b> เว็บนี้เป็น <b>สื่อจำลองเพื่อการเรียนรู้และรณรงค์</b> ไม่ใช่ระบบป้องกันสแกมที่เชื่อมต่อเครือข่ายโทรศัพท์จริง และไม่รับประกันว่าตรวจจับสแกมได้ 100%</div>
+
+<section class="sec" style="margin:0 0 16px"><h2>📝 แบบทดสอบก่อนทดลอง</h2><p>ตอบตามที่คิดก่อนเล่น Simulator (ยังไม่เฉลย)</p><div id="preTest"></div></section>
+<section class="controls">
+  <h2>เลือกสถานการณ์จำลอง</h2>
+  <div class="row">
+    <button class="btn s1" onclick="runScenario(1)">🟢 1. สายปกติ: หมอนัดตรวจ</button>
+    <button class="btn s2" onclick="runScenario(2)">🟡 2. เสี่ยงกลาง: อ้างสรรพากร</button>
+    <button class="btn s3" onclick="runScenario(3)">🔴 3. รุนแรง: ขู่โอนเงิน</button>
+    <button class="btn reset" onclick="resetSimulator()">↺ รีเซ็ต</button>
+  </div>
+  <div class="prog" id="prog">ภารกิจ 0 / 3 · 🟢 สายปกติ → 🟡 สายเสี่ยง → 🔴 สายอันตราย</div>
+</section>
+<section class="sec">
+  <h2>🔐 ตั้งค่าความเป็นส่วนตัวและความยินยอม (ลองปรับได้)</h2>
+  <div class="set">
+    <label><input type="checkbox" id="setNotify" checked> แจ้งเตือนลูกหลานเมื่อเสี่ยงสูง</label>
+    <label><input type="checkbox" id="setCut" checked> อนุญาต Remote Cut โดย "ลูกชาย"</label>
+    <label><input type="checkbox" checked disabled> วิเคราะห์ในเครื่อง (ปิดไม่ได้)</label>
+  </div>
+  <p>การแชร์เบอร์เข้า Central Scam Alert Database (แนวคิดจำลอง): ต้องขอความยินยอมก่อนทุกครั้ง</p>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><button class="mini" onclick="revoke('cut')">ยกเลิกสิทธิ์ Remote Cut</button><button class="mini" onclick="revoke('notify')">ยกเลิกการแจ้งเตือนลูกหลาน</button><button class="mini" onclick="rights()">ตรวจสอบสิทธิ์ผู้ดูแล</button></div>
+  <p id="rightsMsg" style="margin-top:6px;font-weight:bold"></p>
+</section>
+
+<section class="stage">
+  <div class="phone" aria-label="มือถือผู้สูงอายุ">
+    <div class="ptitle">📱 มือถือผู้สูงอายุ</div>
+    <div id="banner" class="banner" role="alert"></div>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <div class="con" id="con"></div>
+  </div>
+
+  <div class="phone" aria-label="มือถือลูกหลาน">
+    <div class="ptitle">📱 มือถือลูกหลาน (แอปผู้ดูแล)</div>
+    <div class="care">
+      <div class="idle" id="idle">🟢 สถานะปกติ<br>ไม่มีการแจ้งเตือนภัย</div>
+      <div class="notif" id="notif" role="alert">
+        <h3>🚨 เตือนภัยสแกมฉุกเฉิน!</h3>
+        <p id="notifBody"></p>
+        <small>ลูกหลานมีสิทธิ์ตัดสายทางไกลตามที่ผู้สูงอายุยินยอมไว้ล่วงหน้า</small>
+        <button class="btn cut" onclick="askCut()">🔴 ตัดสายทางไกล</button>
+        <div class="conf" id="conf">คุณกำลังจะตัดสายของผู้สูงอายุ<br>ผู้ดูแลที่ได้รับอนุญาต: "ลูกชาย"<br>
+          <button class="mini" style="background:#475569" onclick="$('conf').style.display='none'">ยกเลิก</button><button class="mini" style="background:#b91c1c" onclick="confirmCut()">ยืนยันตัดสาย</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="why">
+  <h2>🔎 เหตุผลที่ระบบเตือน</h2>
+  <div id="whyBody"></div>
+  <div id="reportBox" style="display:none">
+    <p style="margin-top:8px">📢 ต้องการรายงานเบอร์นี้หรือไม่?</p>
+    <label style="display:flex;gap:8px;align-items:center;font-size:15px;min-height:44px"><input type="checkbox" id="consent" style="width:22px;height:22px"> ฉันยินยอมให้แชร์ "หมายเลขโทรศัพท์" เพื่อแจ้งเตือนภัย (ไม่ส่งไฟล์เสียง)</label>
+    <div class="warnbox">⚠️ การรายงานเป็นข้อมูลสำหรับตรวจสอบเพิ่มเติม ไม่ใช่การยืนยันว่าเจ้าของหมายเลขเป็นผู้กระทำผิด</div>
+    <button class="mini" onclick="sendReport()">ยืนยันการรายงาน (จำลอง)</button>
+    <div id="msg"></div>
+  </div>
+</section>
+
+<section class="sec"><h2>📝 แบบทดสอบหลังทดลอง</h2><div id="postTest"></div><p id="cmp" style="margin-top:10px;font-weight:bold;color:var(--accent)"></p></section>
+
+<section class="sec"><h2>🚨 เจอสายต้องสงสัย ทำ 4 อย่าง</h2>
+  <ol><li><b>หยุด</b> อย่ารีบทำตามคำสั่ง</li><li><b>วางสาย</b> อย่าอยู่ในสายเพราะถูกกดดัน</li><li><b>ตรวจสอบ</b> ผ่านช่องทางทางการของหน่วยงาน</li><li><b>บอกคนที่ไว้ใจ</b> เช่น ลูกหลาน</li></ol>
+</section>
+
+<section class="sec"><h2>🤖 AI ทำงานอย่างไร? (4 ชั้น)</h2>
+  <ul>
+   <li><b>L1 ตรวจรายชื่อ:</b> ดูว่าเบอร์อยู่ในรายชื่อที่บันทึกหรือไม่ เป็นข้อมูลประกอบ ไม่ใช่การยืนยันว่าปลอดภัย</li>
+   <li><b>L2 จำลองกระบวนการวิเคราะห์เสียงด้วย AI:</b> ต้นแบบนี้ใช้ข้อความและคำสำคัญแทนเสียงจริง ไม่ใช่โมเดล Voice AI จริง</li>
+   <li><b>L3 ประเมินความเสี่ยง:</b> หาคำและพฤติกรรม เช่น ข่มขู่ เร่งรัด ขอโอนเงิน แล้วให้คะแนน</li>
+   <li><b>L4 แจ้งเตือน:</b> เมื่อเสี่ยงสูง แจ้งผู้ดูแล และ <b>มนุษย์เป็นผู้ตัดสินใจ</b> AI เป็นเพียงเครื่องมือช่วยเตือน</li>
+  </ul>
+  <div class="warnbox">⚠️ AI ไม่ถูกต้อง 100%: อาจเตือนสายปกติ (False Positive) หรือพลาดสายสแกม (False Negative) หรือเข้าใจสำเนียงผิด ควรตรวจสอบด้วยตนเองเสมอ</div>
+</section>
+
+<section class="sec"><h2>🔒 ข้อมูลอะไรถูกส่งออกจากเครื่อง?</h2>
+  <div class="flow"><span>🎙️ เสียงสนทนา</span>→<span>📱 ประมวลผลบนเครื่อง</span>→<span>❌ ไม่ส่งเสียงออก</span>→<span>✅ ถ้ายินยอม</span>→<span>☁️ ส่งเฉพาะเบอร์ที่รายงาน</span></div>
+  <p style="margin-top:8px">ผู้ดูแลได้รับเฉพาะการแจ้งเตือนตามสิทธิ์ที่ผู้สูงอายุกำหนด</p>
+</section>
+
+<section class="sec"><h2>⚠️ ข้อจำกัดของต้นแบบ</h2>
+  <ol><li>เป็น Simulator ไม่ได้เชื่อมต่อระบบโทรศัพท์จริง</li><li>ใช้ข้อความและคำสำคัญจำลองการทำงานของ AI</li><li>ยังไม่ได้ทดสอบกับเสียงและสำเนียงที่หลากหลาย</li><li>อาจเกิด False Positive / False Negative</li><li>Remote Cut เป็นเพียงการจำลองแนวคิด</li></ol>
+</section>
+
+<section class="sec"><h2>🤖 การใช้ AI ในโครงการ</h2>
+  <p>เว็บนี้พัฒนาโดยใช้ AI ช่วยออกแบบแนวคิด โครงสร้างเนื้อหา สถานการณ์จำลอง และโค้ดต้นแบบ ผู้จัดทำเป็นผู้ตรวจสอบ ปรับแก้ และกำหนดเนื้อหา กลไก และข้อจำกัดด้วยตนเอง AI ในต้นแบบเป็นการจำลองแนวคิด ไม่ใช่ระบบวิเคราะห์เสียงจริง</p>
+</section>
+
+<section class="sec"><h2>📚 แหล่งอ้างอิง</h2>
+  <ul><li>สำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) และ พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562: pdpc.or.th</li>
+  <li>[ผู้จัดทำเติม: แหล่งข้อมูลสถิติ/ภัยสแกมที่ใช้จริง]</li>
+  <li>เนื้อหาวิชา SW225: แนวคิดแคมเปญ, Agenda Setting, Uses &amp; Gratifications</li>
+  <li>AI ที่ใช้พัฒนาต้นแบบ: Claude (Anthropic) ช่วยออกแบบเนื้อหาและโค้ด</li></ul></section>
+</div>
+
+<script>
+var scenarios={
+ 1:[["them","สวัสดีครับ ขอเรียนสายคุณยาย นัดตรวจสุขภาพโรงพยาบาลพรุ่งนี้ 9.00 น. ครับ"],["me","ขอบคุณค่ะ หมอนัดพอดีเลย"]],
+ 2:[["them","สวัสดีครับ ติดต่อจากกรมสรรพากร ท่านมียอดภาษีค้างชำระ"],["them","กรุณาตรวจสอบยอดและยืนยันตัวตนกับเจ้าหน้าที่ครับ"],["them","เพื่อยืนยันตัวตน กรุณาแจ้ง OTP ที่ได้รับทาง SMS"]],
+ 3:[["them","นี่คือเจ้าหน้าที่ตำรวจ! บัญชีของท่านเกี่ยวข้องกับคดียาเสพติด"],["them","รีบแอด LINE และโอนเงินมาตรวจสอบด่วน ไม่งั้นจะออกหมายจับ!"]]
+};
+var kw=[{w:"กรมสรรพากร",s:2,t:"auth"},{w:"ค้างชำระ",s:1,t:"money"},{w:"โอนเงิน",s:2,t:"money"},{w:"ดำเนินคดี",s:2,t:"threat"},{w:"ตำรวจ",s:2,t:"auth"},{w:"หมายจับ",s:2,t:"threat"},{w:"แอด LINE",s:1,t:"app"},{w:"OTP",s:2,t:"otp"}];
+var TL={threat:"🔴 ข่มขู่เรื่องคดี/หมายจับ",auth:"🔴 อ้างเป็นเจ้าหน้าที่รัฐ",money:"🔴 พูดถึงการโอนเงิน/ยอดค้างชำระ",otp:"🔴 ขอ OTP",app:"🟠 ให้ย้ายไปคุยในแอปอื่น"};
+var WARN=1,DANGER=6,timers=[],notified=false,done={},NUM="099-999-8888";
+function $(id){return document.getElementById(id)}
+function log(m){var c=$("con");c.innerHTML+="<br>&gt; "+m;c.scrollTop=c.scrollHeight}
+function banner(t,c){var b=$("banner");b.className="banner "+c;b.innerText=t}
+function bubble(cls,t){var d=document.createElement("div");d.className="b "+cls;d.innerText=t;var c=$("chat");c.appendChild(d);c.scrollTop=c.scrollHeight}
+function clearTimers(){timers.forEach(clearTimeout);timers=[]}
+function runScenario(id){
+  resetSimulator();
+  log("L1: ไม่พบเบอร์ในรายชื่อ (เป็นข้อมูลประกอบ ไม่ได้แปลว่าอันตราย) ประเมินเพิ่ม");
+  log("L2: จำลองกระบวนการวิเคราะห์เสียงด้วย AI (Prototype: Text-based Simulation)");
+  $("chat").innerHTML="";
+  var score=0,types={},msgs=scenarios[id];
+  msgs.forEach(function(m,i){
+    timers.push(setTimeout(function(){
+      bubble(m[0],m[1]);
+      kw.forEach(function(k){if(m[1].indexOf(k.w)!==-1){score+=k.s;types[k.t]=1;log("L3: พบคำเสี่ยง ["+k.w+"] +"+k.s)}});
+      var lvl=score>=DANGER?"danger":score>=WARN?"warn":"safe";
+      if(lvl==="danger"){
+        banner("🚨 ตรวจพบสแกมรุนแรง! วางสายทันที","danger");
+        if(!notified){notified=true;
+          if($("setNotify").checked){log("L4: ส่งสัญญาณถึงแอปลูกหลาน");notify(types)}
+          else log("L4: ผู้ใช้ปิดการแจ้งเตือนลูกหลาน จึงไม่ส่งสัญญาณ")}
+      }else if(lvl==="warn")banner("⚠️ ระวัง! สายนี้มีพฤติกรรมเสี่ยงสแกม","warn");
+      else if(i===msgs.length-1){banner("🟢 ไม่พบสัญญาณเสี่ยงจากข้อมูลที่ระบบจำลองวิเคราะห์ (ไม่ได้แปลว่าปลอดภัย 100%)","safe");log("L2: ลบข้อมูลวิเคราะห์ทันที")}
+      if(i===msgs.length-1){showWhy(lvl,types);done[id]=1;progress()}
+    },i*1400+300));
+  });
+}
+function showWhy(lvl,types){
+  var h=Object.keys(types).map(function(t){return "<li>"+TL[t]+"</li>"}).join("");
+  $("why").style.display="block";
+  $("whyBody").innerHTML=h?"<p>พบสัญญาณ ("+(lvl==="danger"?"ความเสี่ยงสูง":"ความเสี่ยงปานกลาง")+"):</p><ul>"+h+"</ul><p>เหตุผล: พบสัญญาณเสี่ยงในบทสนทนา</p>":"<p>ไม่พบสัญญาณเสี่ยงจากข้อมูลที่ระบบจำลองวิเคราะห์ ⚠️ ไม่ได้หมายความว่าสายนี้ปลอดภัย 100% ควรตรวจสอบด้วยตนเองเสมอ</p>";
+  $("reportBox").style.display=lvl==="danger"?"block":"none";
+}
+function notify(types){
+  $("idle").style.display="none";$("notif").style.display="block";
+  $("notifBody").innerText="สายต้องสงสัยกำลังคุยกับคุณยาย พบสัญญาณ: "+Object.keys(types).map(function(t){return TL[t].slice(2)}).join(", ");
+}
+function askCut(){
+  if(!$("setCut").checked){$("notifBody").innerText="ผู้สูงอายุไม่ได้อนุญาต Remote Cut ในการตั้งค่า ทำได้เพียงโทรแจ้งเตือนให้วางสาย";return}
+  $("conf").style.display="block";
+}
+function confirmCut(){
+  clearTimers();
+  log("COMMAND: ลูกชายสั่ง Remote Cut (ได้รับอนุญาต)");log("ตัดสายบนเครื่องผู้สูงอายุเรียบร้อย");
+  bubble("sys","❌ สายถูกตัดโดย \"ลูกชาย\"");
+  $("banner").className="banner";$("conf").style.display="none";
+  $("notif").style.display="none";$("idle").style.display="block";
+  $("idle").innerHTML="✅ ตัดสายสำเร็จ<br>ผู้สูงอายุได้รับแจ้งว่า \"ลูกชาย\" เป็นผู้สั่งตัดสาย<br>ยกเลิกสิทธิ์ได้ในการตั้งค่าความยินยอม";
+}
+function sendReport(){
+  $("msg").innerText=$("consent").checked?"✅ จำลองการรายงานหมายเลข "+NUM+" เข้าสู่ Central Scam Alert Database (แนวคิดจำลอง) เรียบร้อย ไม่มีการส่งข้อมูลจริงและไม่ส่งไฟล์เสียง":"กรุณาติ๊กยินยอมก่อนรายงาน";
+}
+function progress(){
+  var n=Object.keys(done).length;
+  $("prog").innerText=n>=3?"🎉 ผ่านครบ 3 สถานการณ์! เรียนรู้แล้วว่า: ไม่โอนเงิน/ไม่ให้ OTP ตามสายโทรเข้า และ AI เป็นเพียงเครื่องมือช่วยเตือน":"ภารกิจ "+n+" / 3 · 🟢 สายปกติ → 🟡 สายเสี่ยง → 🔴 สายอันตราย";
+}
+function resetSimulator(){
+  clearTimers();notified=false;
+  $("chat").innerHTML='<div class="b them">ระบบสแตนด์บาย รอรับสายโทรเข้า...</div>';
+  $("con").innerHTML="&gt; On-Device Guard: Ready (ต้นแบบจำลอง)";
+  $("banner").className="banner";$("conf").style.display="none";$("why").style.display="none";$("msg").innerText="";
+  $("notif").style.display="none";$("idle").style.display="block";
+  $("idle").innerHTML="🟢 สถานะปกติ<br>ไม่มีการแจ้งเตือนภัย";
+}
+var QS=[
+{q:"มีสายอ้างเป็นตำรวจ บอกว่าบัญชีคุณเกี่ยวข้องกับคดี ให้โอนเงินตรวจสอบ ควรทำอย่างไร?",o:["โอนเงินเพื่อพิสูจน์ตัวเอง","วางสายและตรวจสอบผ่านช่องทางทางการ","แอด LINE ตามที่บอก"],a:1},
+{q:"สายอ้างเป็นหน่วยงานรัฐ ขอให้แจ้ง OTP ทาง SMS ควรทำอย่างไร?",o:["แจ้ง OTP เพื่อยืนยันตัวตน","ไม่แจ้ง OTP และวางสาย","แจ้งเฉพาะ 3 ตัวแรก"],a:1},
+{q:"เบอร์ในรายชื่อโทรมาขอให้โอนเงินด่วน ควรทำอย่างไร?",o:["โอนทันทีเพราะเป็นเบอร์ที่รู้จัก","ตรวจสอบกับเจ้าของเบอร์ผ่านช่องทางอื่นก่อน","ส่งเลขบัญชีให้ช่วยดู"],a:1}];
+var picks={pre:{},post:{}},scores={};
+function buildTest(k){$(k+"Test").innerHTML=QS.map(function(x,i){return '<p style="margin-top:8px;color:var(--text)"><b>'+(i+1)+'. '+x.q+'</b></p>'+x.o.map(function(o,j){return '<button class="btn opt" data-k="'+k+'" data-i="'+i+'" data-j="'+j+'" onclick="ans(this)">'+o+'</button>'}).join("")}).join("")+'<p id="'+k+'Res" style="margin-top:8px;font-weight:bold"></p>'}
+function ans(b){var k=b.dataset.k,i=+b.dataset.i,j=+b.dataset.j;if(picks[k][i]!==undefined)return;picks[k][i]=j;
+  var bs=document.querySelectorAll('[data-k="'+k+'"][data-i="'+i+'"]');
+  if(k==="pre"){b.className="btn opt sel"}else{bs.forEach(function(x){if(+x.dataset.j===QS[i].a)x.className="btn opt ok"});if(j!==QS[i].a)b.className="btn opt bad"}
+  if(Object.keys(picks[k]).length===QS.length){var n=0;QS.forEach(function(x,t){if(picks[k][t]===x.a)n++});scores[k]=n;
+    $(k+"Res").innerText=k==="pre"?"บันทึกคำตอบแล้ว ไปลอง Simulator ได้เลย":"คะแนน "+n+"/3";cmp()}}
+function cmp(){if(scores.pre!==undefined&&scores.post!==undefined)$("cmp").innerText="ก่อนทดลอง: "+scores.pre+"/3 · หลังทดลอง: "+scores.post+"/3 "+(scores.post>scores.pre?"🎉 ความสามารถในการสังเกตสัญญาณสแกมเพิ่มขึ้น":scores.post===scores.pre?"คะแนนเท่าเดิม ลองทบทวนสัญญาณเตือนอีกครั้ง":"คะแนนลดลง ลองเล่นสถานการณ์ซ้ำ")}
+function revoke(w){var c=$(w==="cut"?"setCut":"setNotify");c.checked=false;$("rightsMsg").innerText="ยกเลิกสิทธิ์"+(w==="cut"?" Remote Cut":"การแจ้งเตือนลูกหลาน")+"แล้ว มีผลกับการจำลองครั้งต่อไป"}
+function rights(){$("rightsMsg").innerText="ผู้ดูแลที่ได้รับอนุญาต: ลูกชาย · แจ้งเตือน: "+($("setNotify").checked?"เปิด":"ปิด")+" · Remote Cut: "+($("setCut").checked?"อนุญาต":"ไม่อนุญาต")}
+buildTest("pre");buildTest("post");
+resetSimulator();
+</script>
+</body>
+</html>
